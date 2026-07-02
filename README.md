@@ -18,6 +18,8 @@ Free Claude Code routes Anthropic Messages API traffic from Claude Code (CLI and
 
 </div>
 
+> **This is a fork.** This repository is a fork of [Alishahryar1/free-claude-code](https://github.com/Alishahryar1/free-claude-code), maintained by [molina-stack](https://github.com/molina-stack). All credit for the original proxy, the provider adapters, the Admin UI, and the overall architecture goes to the upstream project and its contributors. This fork adds one thing on top of upstream: a 19th provider, **Anthropic**, that talks to the real Claude API and can rotate across several API keys (see [Anthropic (real Claude API, multi-key)](#19-anthropic-real-claude-api-multi-key) below). Everything else in this README describes the shared upstream behavior; only that one section documents fork-specific functionality.
+
 <div align="center">
   <img src="assets/pic.png" alt="Free Claude Code in action" width="700">
   <p><em>Claude Code running through the Free Claude Code proxy.</em></p>
@@ -57,7 +59,7 @@ Free Claude Code routes Anthropic Messages API traffic from Claude Code (CLI and
 - Drop-in proxy for Claude Code's Anthropic API calls (`/v1/messages`, `/v1/models`).
 - Drop-in proxy for Codex via the OpenAI Responses API (`/v1/responses`).
 - `fcc-claude` and `fcc-codex` launchers that read the current Admin UI port and auth token each time they start.
-- 18 provider backends: NVIDIA NIM, OpenRouter, Google AI Studio (Gemini), DeepSeek, Mistral La Plateforme, Mistral Codestral, OpenCode Zen, OpenCode Go, Wafer, Kimi, Cerebras Inference, Groq, Fireworks AI, Cloudflare, Z.ai, LM Studio, llama.cpp, and Ollama.
+- 19 provider backends: NVIDIA NIM, OpenRouter, Google AI Studio (Gemini), DeepSeek, Mistral La Plateforme, Mistral Codestral, OpenCode Zen, OpenCode Go, Wafer, Kimi, Cerebras Inference, Groq, Fireworks AI, Cloudflare, Z.ai, LM Studio, llama.cpp, Ollama, and Anthropic (real Claude API, multi-key, fork-only).
 - Per-model routing for Claude Code: send Opus, Sonnet, Haiku, and fallback traffic to different providers.
 - Native Claude Code `/model` picker support through the proxy's `/v1/models` endpoint (see [Model Picker](#model-picker)).
 - Native Codex `/model` picker support when launched through `fcc-codex`, using a generated local model catalog.
@@ -356,11 +358,35 @@ In the Admin UI, keep or update `OLLAMA_BASE_URL`, then set `MODEL` to the same 
 
 `OLLAMA_BASE_URL` is the Ollama server root; do not append `/v1`. Example model slugs include `ollama/llama3.1` and `ollama/llama3.1:8b`.
 
-### 18. Mix Providers By Model Tier
+<a id="19-anthropic-real-claude-api-multi-key"></a>
+
+### 19. [Anthropic](https://console.anthropic.com/) (real Claude API, multi-key, fork-only)
+
+This provider is not part of upstream `Alishahryar1/free-claude-code`; it was added in this fork.
+
+It calls the real, official Anthropic Messages API at `https://api.anthropic.com/v1/messages`. Unlike the other 18 providers, this one is **not free**: Anthropic gives new accounts a small one-time trial credit and then bills per token. Treat it as your top-tier or last-resort route, not as another free backend.
+
+Get an API key at [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys).
+
+In the Admin UI, paste it into `ANTHROPIC_API_KEY`, then set `MODEL` (or a tier override, see below) to an Anthropic model slug such as `anthropic/claude-opus-4-8`.
+
+**Multi-key rotation:** `ANTHROPIC_API_KEY` accepts either a single key or several comma-separated keys, for example:
+
+```
+ANTHROPIC_API_KEY=sk-ant-key-one,sk-ant-key-two,sk-ant-key-three
+```
+
+Whenever the key currently in use comes back rate-limited (HTTP 429) or overloaded (HTTP 529), the provider automatically retries the same request with the next key in the list before surfacing an error to the client. It then keeps using that key for subsequent requests, instead of immediately hammering the exhausted one again. Any other error (401, 400, ...) is not retried across keys, since that is a real request/auth problem rather than a capacity issue.
+
+An optional `ANTHROPIC_PROXY` setting is available if you need to route these requests through an HTTP/SOCKS proxy, matching the pattern used by the other providers.
+
+### 20. Mix Providers By Model Tier
 
 Each model tier can use a different provider by setting `MODEL_OPUS`, `MODEL_SONNET`, and `MODEL_HAIKU` in the Admin UI. Leave a tier blank to inherit `MODEL`. These tier overrides apply to Claude model names that contain `opus`, `sonnet`, or `haiku`. Codex uses the Admin `MODEL` default through `fcc-codex` unless a session requests a provider-prefixed slug directly.
 
 For example, you can route Opus to `nvidia_nim/moonshotai/kimi-k2.6`, Sonnet to `open_router/openrouter/free`, Haiku to `lmstudio/qwen3.5-coder`, and keep the fallback `MODEL` on `zai/glm-5.1`.
+
+If you want the real Claude API as your top-tier, paid route (fork-only), set `MODEL_OPUS=anthropic/claude-opus-4-8` and keep the free providers on the other tiers. There is no automatic cross-provider failover today: if the configured provider for a tier errors out, the request fails rather than trying a different provider.
 
 <a id="connect-your-client"></a>
 
