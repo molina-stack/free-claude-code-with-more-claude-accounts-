@@ -64,6 +64,12 @@ class Settings(BaseSettings):
     # ==================== Cerebras Inference (OpenAI-compatible) ====================
     cerebras_api_key: str = Field(default="", validation_alias="CEREBRAS_API_KEY")
 
+    # ==================== Anthropic (real Claude API, last-resort fallback) ====
+    # Accepts one key or several comma-separated keys (e.g. "sk-ant-aaa,sk-ant-bbb").
+    # The provider rotates to the next key whenever one comes back rate-limited.
+    anthropic_api_key: str = Field(default="", validation_alias="ANTHROPIC_API_KEY")
+    anthropic_proxy: str = Field(default="", validation_alias="ANTHROPIC_PROXY")
+
     # ==================== Messaging Platform Selection ====================
     # Valid: "telegram" | "discord" | "none"
     messaging_platform: str = Field(

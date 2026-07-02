@@ -127,6 +127,12 @@ def _create_cerebras(config: ProviderConfig, _settings: Settings) -> BaseProvide
     return CerebrasProvider(config)
 
 
+def _create_anthropic(config: ProviderConfig, _settings: Settings) -> BaseProvider:
+    from providers.anthropic_native import AnthropicProvider
+
+    return AnthropicProvider(config)
+
+
 PROVIDER_FACTORIES: dict[str, ProviderFactory] = {
     "nvidia_nim": _create_nvidia_nim,
     "open_router": _create_open_router,
@@ -146,6 +152,7 @@ PROVIDER_FACTORIES: dict[str, ProviderFactory] = {
     "lmstudio": _create_lmstudio,
     "llamacpp": _create_llamacpp,
     "ollama": _create_ollama,
+    "anthropic": _create_anthropic,
 }
 
 if set(PROVIDER_CATALOG) != set(SUPPORTED_PROVIDER_IDS) or set(

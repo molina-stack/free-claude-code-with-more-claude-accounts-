@@ -36,6 +36,9 @@ ZAI_DEFAULT_BASE = "https://api.z.ai/api/anthropic/v1"
 GEMINI_DEFAULT_BASE = "https://generativelanguage.googleapis.com/v1beta/openai/"
 GROQ_DEFAULT_BASE = "https://api.groq.com/openai/v1"
 CEREBRAS_DEFAULT_BASE = "https://api.cerebras.ai/v1"
+# Real Anthropic API (native Messages endpoint). Used as the last-resort
+# fallback tier once every free/OSS provider above is rate-limited.
+ANTHROPIC_DEFAULT_BASE = "https://api.anthropic.com/v1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -280,6 +283,25 @@ PROVIDER_CATALOG: dict[str, ProviderDescriptor] = {
             "thinking",
             "native_anthropic",
             "local",
+        ),
+    ),
+    "anthropic": ProviderDescriptor(
+        provider_id="anthropic",
+        display_name="Anthropic (real Claude API)",
+        transport_type="anthropic_messages",
+        credential_env="ANTHROPIC_API_KEY",
+        credential_url="https://console.anthropic.com/settings/keys",
+        credential_attr="anthropic_api_key",
+        default_base_url=ANTHROPIC_DEFAULT_BASE,
+        proxy_attr="anthropic_proxy",
+        capabilities=(
+            "chat",
+            "streaming",
+            "tools",
+            "thinking",
+            "native_anthropic",
+            "rate_limit",
+            "multi_key",
         ),
     ),
 }
